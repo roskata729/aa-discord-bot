@@ -1,0 +1,16 @@
+[Unit]
+Description=Discord Bot Deploy Webhook
+After=network.target
+
+[Service]
+Type=simple
+User=roskata728
+Group=roskata728
+WorkingDirectory=/home/roskata728/discord-bot
+EnvironmentFile=/home/roskata728/discord-bot/.env
+ExecStart=/home/roskata728/discord-bot/.venv/bin/python /home/roskata728/discord-bot/deploy_webhook.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

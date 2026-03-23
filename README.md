@@ -1,6 +1,6 @@
-# Discord Activity Bot
+# Discord Bot Starter Template
 
-This bot validates activity submissions in one Discord server, reposts approved submissions to another server, and keeps activity statistics for management reports.
+This repository is a reusable starter for Discord bots built with `discord.py`. It includes a working bot, deployment scripts, webhook-based auto-deploy, changelog posting, and example configuration files you can adapt for a new project.
 
 ## Features
 
@@ -43,6 +43,224 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+## Step-By-Step Guide
+
+Use this checklist when creating a new bot from this starter template.
+
+### 1. Create a new local project
+
+Copy the starter template into a new folder:
+
+```powershell
+Copy-Item -Recurse r:\Projects\discordBot\starter-bot-template r:\Projects\myNewBot
+```
+
+Then open the new folder in your editor.
+
+### 2. Customize the bot
+
+Edit the project to match the new server or use case:
+
+- [bot.py](r:/Projects/discordBot/starter-bot-template/bot.py)
+- [README.md](r:/Projects/discordBot/starter-bot-template/README.md)
+- [.env.example](r:/Projects/discordBot/starter-bot-template/.env.example)
+- [assets/activity.png](r:/Projects/discordBot/starter-bot-template/assets/activity.png)
+
+Typical things to change:
+
+- Bot name
+- Submission format
+- Validation rules
+- Activity types
+- Forwarded message format
+- Statistics commands
+- Changelog wording
+- Channel usage
+
+### 3. Create a new GitHub repository
+
+Create an empty repository on GitHub, then connect your local project:
+
+```bash
+cd r:\Projects\myNewBot
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_NEW_REPO.git
+git push -u origin main
+```
+
+### 4. Create a Discord bot
+
+In the Discord Developer Portal:
+
+1. Create a new application
+2. Add a bot
+3. Copy the bot token
+4. Enable:
+   - `MESSAGE CONTENT INTENT`
+   - `SERVER MEMBERS INTENT`
+
+Invite the bot to your server with the permissions it needs.
+
+### 5. Configure the local environment
+
+Create `.env` from the example:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Fill in:
+
+- `DISCORD_BOT_TOKEN`
+- `SOURCE_TEXT_CHANNEL_ID`
+- `TARGET_TEXT_CHANNEL_ID`
+- `MANAGEMENT_CHANNEL_ID`
+- `CHANGELOG_CHANNEL_ID`
+- `GITHUB_REPOSITORY`
+- `GITHUB_BRANCH`
+- `GITHUB_WEBHOOK_SECRET`
+- `DEPLOY_WEBHOOK_PORT`
+- `BOT_SERVICE_NAME`
+
+### 6. Test locally
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python bot.py
+```
+
+Test:
+
+- Submissions
+- Reposting
+- `!showmonthly`
+- Any custom commands
+- Changelog behavior if enabled
+
+### 7. Prepare the VM
+
+On your VM:
+
+```bash
+sudo apt update
+sudo apt install -y git python3 python3-venv python3-pip
+git clone https://github.com/YOUR_USERNAME/YOUR_NEW_REPO.git ~/discord-bot
+cd ~/discord-bot
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+nano .env
+```
+
+Fill in the real values in `.env`.
+
+### 8. Install the bot service
+
+```bash
+sudo cp deploy/discord-bot.service /etc/systemd/system/discord-bot.service
+sudo nano /etc/systemd/system/discord-bot.service
+```
+
+Check or update:
+
+- `User=roskata728`
+- `Group=roskata728`
+- `WorkingDirectory=/home/roskata728/discord-bot`
+- `EnvironmentFile=/home/roskata728/discord-bot/.env`
+- `ExecStart=/home/roskata728/discord-bot/.venv/bin/python /home/roskata728/discord-bot/bot.py`
+
+Then start it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now discord-bot
+sudo systemctl status discord-bot
+```
+
+### 9. Optional: enable auto-deploy from GitHub
+
+Install the webhook service:
+
+```bash
+sudo cp deploy/discord-bot-deploy-webhook.service /etc/systemd/system/discord-bot-deploy-webhook.service
+sudo nano /etc/systemd/system/discord-bot-deploy-webhook.service
+```
+
+Check or update:
+
+- `User=roskata728`
+- `Group=roskata728`
+- `WorkingDirectory=/home/roskata728/discord-bot`
+- `EnvironmentFile=/home/roskata728/discord-bot/.env`
+- `ExecStart=/home/roskata728/discord-bot/.venv/bin/python /home/roskata728/discord-bot/deploy_webhook.py`
+
+Then enable it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now discord-bot-deploy-webhook
+sudo systemctl status discord-bot-deploy-webhook
+```
+
+Allow the webhook service to restart the bot:
+
+```bash
+sudo visudo
+```
+
+Add:
+
+```text
+roskata728 ALL=NOPASSWD: /bin/systemctl stop discord-bot, /bin/systemctl start discord-bot
+```
+
+### 10. Configure the GitHub webhook
+
+In GitHub:
+
+1. Go to `Settings`
+2. Go to `Webhooks`
+3. Click `Add webhook`
+
+Use:
+
+- Payload URL: `http://YOUR_PUBLIC_IP:9000/github-webhook`
+- Content type: `application/json`
+- Secret: same as `GITHUB_WEBHOOK_SECRET`
+- Event: `Just the push event`
+
+Also open port `9000` in your cloud firewall.
+
+### 11. Update the bot later
+
+If auto-deploy is not enabled:
+
+```bash
+cd ~/discord-bot
+git pull origin main
+. .venv/bin/activate
+pip install -r requirements.txt
+sudo systemctl restart discord-bot
+```
+
+If auto-deploy is enabled, just push to GitHub.
+
+### 12. Check logs
+
+Bot logs:
+
+```bash
+journalctl -u discord-bot -f
+```
+
+Webhook logs:
+
+```bash
+journalctl -u discord-bot-deploy-webhook -f
+```
+
 ## Dependencies
 
 - `discord.py==2.4.0`
@@ -51,17 +269,16 @@ pip install -r requirements.txt
 
 ## Project Files
 
-- [bot.py](r:/Projects/discordBot/bot.py): Main bot logic
-- [requirements.txt](r:/Projects/discordBot/requirements.txt): Python dependencies
-- [.env](r:/Projects/discordBot/.env): Runtime configuration
-- [.env.example](r:/Projects/discordBot/.env.example): Safe environment template
-- [assets/activity.png](r:/Projects/discordBot/assets/activity.png): Header image sent before reposts
-- [deploy/setup_oracle.sh](r:/Projects/discordBot/deploy/setup_oracle.sh): Ubuntu setup script for Oracle Cloud
-- [deploy/setup_gcp.sh](r:/Projects/discordBot/deploy/setup_gcp.sh): Ubuntu setup script for Google Cloud VM
-- [deploy/discord-activity-bot.service](r:/Projects/discordBot/deploy/discord-activity-bot.service): `systemd` service template
-- [deploy/discord-deploy-webhook.service](r:/Projects/discordBot/deploy/discord-deploy-webhook.service): `systemd` service for GitHub webhooks
-- [deploy/deploy_on_push.sh](r:/Projects/discordBot/deploy/deploy_on_push.sh): Deploy script triggered by GitHub push
-- [deploy_webhook.py](r:/Projects/discordBot/deploy_webhook.py): Webhook listener that starts deployment on push
+- [bot.py](r:/Projects/discordBot/starter-bot-template/bot.py): Main bot logic
+- [requirements.txt](r:/Projects/discordBot/starter-bot-template/requirements.txt): Python dependencies
+- [.env.example](r:/Projects/discordBot/starter-bot-template/.env.example): Safe environment template
+- [assets/activity.png](r:/Projects/discordBot/starter-bot-template/assets/activity.png): Example header image
+- [deploy/setup_oracle.sh](r:/Projects/discordBot/starter-bot-template/deploy/setup_oracle.sh): Ubuntu setup script for Oracle Cloud
+- [deploy/setup_gcp.sh](r:/Projects/discordBot/starter-bot-template/deploy/setup_gcp.sh): Ubuntu setup script for Google Cloud VM
+- [deploy/discord-bot.service](r:/Projects/discordBot/starter-bot-template/deploy/discord-bot.service): `systemd` service template
+- [deploy/discord-bot-deploy-webhook.service](r:/Projects/discordBot/starter-bot-template/deploy/discord-bot-deploy-webhook.service): `systemd` service for GitHub webhooks
+- [deploy/deploy_on_push.sh](r:/Projects/discordBot/starter-bot-template/deploy/deploy_on_push.sh): Deploy script triggered by GitHub push
+- [deploy_webhook.py](r:/Projects/discordBot/starter-bot-template/deploy_webhook.py): Webhook listener that starts deployment on push
 - `activity_stats.db`: SQLite database created automatically after first run
 
 ## Discord Setup
@@ -102,7 +319,7 @@ Enable Discord Developer Mode, then copy these IDs:
 
 ## Environment Variables
 
-Configure [.env](r:/Projects/discordBot/.env):
+Create `.env` from [.env.example](r:/Projects/discordBot/starter-bot-template/.env.example) and configure it:
 
 ```env
 DISCORD_BOT_TOKEN=YOUR_NEW_BOT_TOKEN
@@ -110,12 +327,12 @@ SOURCE_TEXT_CHANNEL_ID=123456789012345678
 TARGET_TEXT_CHANNEL_ID=987654321098765432
 MANAGEMENT_CHANNEL_ID=555555555555555555
 CHANGELOG_CHANNEL_ID=666666666666666666
-GITHUB_REPOSITORY=roskata729/safd-bot
+GITHUB_REPOSITORY=your-github-user/your-new-bot-repo
 GITHUB_BRANCH=main
 GITHUB_WEBHOOK_SECRET=PUT_A_RANDOM_WEBHOOK_SECRET_HERE
 DEPLOY_WEBHOOK_HOST=0.0.0.0
 DEPLOY_WEBHOOK_PORT=9000
-BOT_SERVICE_NAME=discord-activity-bot
+BOT_SERVICE_NAME=discord-bot
 COMMAND_PREFIX=!
 ```
 
@@ -152,7 +369,7 @@ If startup succeeds, the bot logs in and creates `activity_stats.db` automatical
 
 ## Auto Deploy And Changelog
 
-This project can deploy itself on every GitHub push by using a GitHub webhook on your VM.
+This template can deploy itself on every GitHub push by using a GitHub webhook on your VM.
 
 Flow:
 
@@ -201,24 +418,24 @@ Start by making sure the normal bot service already works.
 Install the webhook service:
 
 ```bash
-sudo cp deploy/discord-deploy-webhook.service /etc/systemd/system/discord-deploy-webhook.service
-sudo nano /etc/systemd/system/discord-deploy-webhook.service
+sudo cp deploy/discord-bot-deploy-webhook.service /etc/systemd/system/discord-bot-deploy-webhook.service
+sudo nano /etc/systemd/system/discord-bot-deploy-webhook.service
 ```
 
-If your VM username or path is not `ubuntu` and `/home/ubuntu/discordBot`, update:
+If your VM username or path is not `roskata728` and `/home/roskata728/discord-bot`, update:
 
-- `User=ubuntu`
-- `Group=ubuntu`
-- `WorkingDirectory=/home/ubuntu/discordBot`
-- `EnvironmentFile=/home/ubuntu/discordBot/.env`
-- `ExecStart=/home/ubuntu/discordBot/.venv/bin/python /home/ubuntu/discordBot/deploy_webhook.py`
+- `User=roskata728`
+- `Group=roskata728`
+- `WorkingDirectory=/home/roskata728/discord-bot`
+- `EnvironmentFile=/home/roskata728/discord-bot/.env`
+- `ExecStart=/home/roskata728/discord-bot/.venv/bin/python /home/roskata728/discord-bot/deploy_webhook.py`
 
 Then enable it:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now discord-deploy-webhook
-sudo systemctl status discord-deploy-webhook
+sudo systemctl enable --now discord-bot-deploy-webhook
+sudo systemctl status discord-bot-deploy-webhook
 ```
 
 ### Sudoers Requirement
@@ -234,7 +451,7 @@ sudo visudo
 Add this line, replacing the username if needed:
 
 ```text
-ubuntu ALL=NOPASSWD: /bin/systemctl stop discord-activity-bot, /bin/systemctl start discord-activity-bot
+roskata728 ALL=NOPASSWD: /bin/systemctl stop discord-bot, /bin/systemctl start discord-bot
 ```
 
 If your service name is different, update that line to match `BOT_SERVICE_NAME`.
@@ -248,7 +465,7 @@ Title: Add Google Cloud deployment setup
 Commit: 97ba87d
 Author: Roskou
 Branch: main
-Repository: roskata729/safd-bot
+Repository: your-github-user/your-new-bot-repo
 Pushed: full Discord timestamp + relative time
 Link: https://github.com/roskata729/safd-bot/commit/...
 ```
@@ -276,8 +493,8 @@ ssh ubuntu@YOUR_VM_PUBLIC_IP
 On the VM:
 
 ```bash
-git clone https://github.com/roskata729/safd-bot.git ~/discordBot
-cd ~/discordBot
+git clone https://github.com/YOUR_USERNAME/YOUR_NEW_REPO.git ~/discord-bot
+cd ~/discord-bot
 ```
 
 ### 4. Run the setup script
@@ -294,7 +511,7 @@ This installs Python dependencies, creates `.venv`, and copies `.env.example` to
 Edit `.env` on the VM:
 
 ```bash
-nano ~/discordBot/.env
+nano ~/discord-bot/.env
 ```
 
 Fill in:
@@ -310,10 +527,10 @@ Fill in:
 Copy the service template into `systemd`:
 
 ```bash
-sudo cp deploy/discord-activity-bot.service /etc/systemd/system/discord-activity-bot.service
+sudo cp deploy/discord-bot.service /etc/systemd/system/discord-bot.service
 ```
 
-If your VM user or project path is different from `ubuntu` and `/home/ubuntu/discordBot`, edit the service file first:
+If your VM user or project path is different from `roskata728` and `/home/roskata728/discord-bot`, edit the service file first:
 
 ```bash
 nano deploy/discord-activity-bot.service
@@ -321,34 +538,34 @@ nano deploy/discord-activity-bot.service
 
 Check these lines:
 
-- `User=ubuntu`
-- `Group=ubuntu`
-- `WorkingDirectory=/home/ubuntu/discordBot`
-- `EnvironmentFile=/home/ubuntu/discordBot/.env`
-- `ExecStart=/home/ubuntu/discordBot/.venv/bin/python /home/ubuntu/discordBot/bot.py`
+- `User=roskata728`
+- `Group=roskata728`
+- `WorkingDirectory=/home/roskata728/discord-bot`
+- `EnvironmentFile=/home/roskata728/discord-bot/.env`
+- `ExecStart=/home/roskata728/discord-bot/.venv/bin/python /home/roskata728/discord-bot/bot.py`
 
 ### 7. Start the bot on boot
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now discord-activity-bot
+sudo systemctl enable --now discord-bot
 ```
 
 ### 8. Check logs
 
 ```bash
-sudo systemctl status discord-activity-bot
-journalctl -u discord-activity-bot -f
+sudo systemctl status discord-bot
+journalctl -u discord-bot -f
 ```
 
 ### 9. Updating the bot later
 
 ```bash
-cd ~/discordBot
+cd ~/discord-bot
 git pull
 . .venv/bin/activate
 pip install -r requirements.txt
-sudo systemctl restart discord-activity-bot
+sudo systemctl restart discord-bot
 ```
 
 ## Google Cloud Deployment
@@ -380,8 +597,8 @@ gcloud compute ssh YOUR_VM_NAME --zone YOUR_VM_ZONE
 On the VM:
 
 ```bash
-git clone https://github.com/roskata729/safd-bot.git ~/discordBot
-cd ~/discordBot
+git clone https://github.com/YOUR_USERNAME/YOUR_NEW_REPO.git ~/discord-bot
+cd ~/discord-bot
 ```
 
 ### 4. Run the setup script
@@ -398,7 +615,7 @@ This installs Python dependencies, creates `.venv`, and copies `.env.example` to
 Edit `.env` on the VM:
 
 ```bash
-nano ~/discordBot/.env
+nano ~/discord-bot/.env
 ```
 
 Fill in:
@@ -414,10 +631,10 @@ Fill in:
 Copy the service template into `systemd`:
 
 ```bash
-sudo cp deploy/discord-activity-bot.service /etc/systemd/system/discord-activity-bot.service
+sudo cp deploy/discord-bot.service /etc/systemd/system/discord-bot.service
 ```
 
-If your VM username or project path is different from `ubuntu` and `/home/ubuntu/discordBot`, edit the service file first:
+If your VM username or project path is different from `roskata728` and `/home/roskata728/discord-bot`, edit the service file first:
 
 ```bash
 nano deploy/discord-activity-bot.service
@@ -425,34 +642,34 @@ nano deploy/discord-activity-bot.service
 
 Update these lines if needed:
 
-- `User=ubuntu`
-- `Group=ubuntu`
-- `WorkingDirectory=/home/ubuntu/discordBot`
-- `EnvironmentFile=/home/ubuntu/discordBot/.env`
-- `ExecStart=/home/ubuntu/discordBot/.venv/bin/python /home/ubuntu/discordBot/bot.py`
+- `User=roskata728`
+- `Group=roskata728`
+- `WorkingDirectory=/home/roskata728/discord-bot`
+- `EnvironmentFile=/home/roskata728/discord-bot/.env`
+- `ExecStart=/home/roskata728/discord-bot/.venv/bin/python /home/roskata728/discord-bot/bot.py`
 
 ### 7. Start the bot on boot
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now discord-activity-bot
+sudo systemctl enable --now discord-bot
 ```
 
 ### 8. Check logs
 
 ```bash
-sudo systemctl status discord-activity-bot
-journalctl -u discord-activity-bot -f
+sudo systemctl status discord-bot
+journalctl -u discord-bot -f
 ```
 
 ### 9. Updating the bot later
 
 ```bash
-cd ~/discordBot
+cd ~/discord-bot
 git pull
 . .venv/bin/activate
 pip install -r requirements.txt
-sudo systemctl restart discord-activity-bot
+sudo systemctl restart discord-bot
 ```
 
 ## Submission Format

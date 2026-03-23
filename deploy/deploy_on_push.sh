@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${1:-$HOME/discordBot}"
+APP_DIR="${1:-$HOME/discord-bot}"
 BRANCH="${2:-main}"
-BOT_SERVICE_NAME="${BOT_SERVICE_NAME:-discord-activity-bot}"
+BOT_SERVICE_NAME="${BOT_SERVICE_NAME:-discord-bot}"
 
 cd "$APP_DIR"
 
